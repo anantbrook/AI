@@ -34,6 +34,23 @@ DEFAULT_MODEL  = "ollama/qwen3-coder:480b-cloud"
 # Shared skip set — used everywhere, defined once
 SKIP = {'node_modules', '__pycache__', '.git', '.next', 'dist', 'build', '.venv', 'venv', '.cache'}
 
+def is_safe_path(target_path: str) -> bool:
+    """Check if target_path is a subdirectory of any saved project."""
+    try:
+        if not PROJECTS_FILE.exists():
+            return False
+
+        target = Path(target_path).resolve()
+        import json
+        projects = json.loads(PROJECTS_FILE.read_text())
+        for p in projects:
+            p_path = Path(p.get("path", "")).resolve()
+            if target.is_relative_to(p_path):
+                return True
+        return False
+    except Exception:
+        return False
+
 
 # ── Helpers ────────────────────────────────────
 def get_ip():
@@ -60,6 +77,8 @@ fs = APIRouter(prefix="/api/fs")
 @fs.get("/list")
 async def list_dir(path: str):
     try:
+        if not is_safe_path(path):
+            return {"error": "Access denied: Path not in any saved project."}
         p = Path(path)
         if not p.exists() or not p.is_dir():
             return {"error": "Not a directory"}
@@ -80,6 +99,8 @@ async def list_dir(path: str):
 @fs.get("/read")
 async def read_file(path: str):
     try:
+        if not is_safe_path(path):
+            return {"error": "Access denied: Path not in any saved project."}
         return {"content": Path(path).read_text(encoding="utf-8", errors="replace")}
     except Exception as e:
         return {"error": str(e)}
@@ -91,6 +112,8 @@ class WriteBody(BaseModel):
 @fs.post("/write")
 async def write_file(body: WriteBody):
     try:
+        if not is_safe_path(body.path):
+            return {"error": "Access denied: Path not in any saved project."}
         p = Path(body.path)
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(body.content, encoding="utf-8")
