@@ -18,7 +18,15 @@ from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 app = FastAPI(title="AiderWeb")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+origins = [
+    "http://localhost",
+    "http://localhost:5173",
+    "http://localhost:8000",
+    "http://127.0.0.1",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8000",
+]
+app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["*"], allow_headers=["*"])
 
 PROJECTS_FILE = Path.home() / ".aiderwebapp" / "projects.json"
 DEFAULT_MODEL  = "ollama/qwen3-coder:480b-cloud"
