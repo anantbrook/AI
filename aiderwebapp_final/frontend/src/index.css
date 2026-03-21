@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { height: 100%; overflow: hidden; }
+body { background: #0d1117; color: #e6edf3; font-family: 'Inter', sans-serif; font-size: 13px; }
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
+
+@keyframes fadeUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%,100% { opacity:.3; } 50% { opacity:1; } }
+@keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+
+.animate-in { animation: fadeUp 0.2s ease; }
+.spinner { animation: spin 0.8s linear infinite; }
+.pulse { animation: pulse 1.5s ease infinite; }
+.blink { animation: blink 1s step-end infinite; }
+
+.font-mono { font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace; }
+
+pre { background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:12px; overflow-x:auto; font-family:monospace; font-size:12px; line-height:1.6; margin:6px 0; }
+code { background:#21262d; padding:1px 4px; border-radius:3px; font-family:monospace; font-size:11px; color:#bc8cff; }
+pre code { background:none; padding:0; color:#e6edf3; }
+
+.diff-add { background:rgba(63,185,80,.12); color:#3fb950; }
+.diff-remove { background:rgba(248,81,73,.12); color:#f85149; }
+.diff-ctx { color:#6e7681; }
