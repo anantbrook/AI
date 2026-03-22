@@ -163,21 +163,29 @@ mdl = APIRouter(prefix="/api/models")
 @mdl.get("")
 async def get_models():
     """Return all installed models split into cloud vs local."""
+    cloud_fallback = [
+        "qwen3-coder:480b-cloud",
+        "deepseek-v3.1:671b-cloud",
+        "gpt-oss:120b-cloud",
+        "qwen3-coder:32b-cloud",
+        "minimax-m2:cloud",
+        "qlm-4.6:cloud"
+    ]
     try:
         with urllib.request.urlopen("http://localhost:11434/api/tags", timeout=3) as r:
             data   = json.loads(r.read())
             all_m  = [m["name"] for m in data.get("models", [])]
             cloud  = [m for m in all_m if "cloud" in m]
             local  = [m for m in all_m if "cloud" not in m]
+
+            # Ensure hardcoded cloud models are always available
+            for m in cloud_fallback:
+                if m not in cloud:
+                    cloud.append(m)
+
             return {"models": cloud + local, "cloud": cloud, "local": local, "online": True}
     except:
         # Ollama offline — return known cloud model names so UI still works
-        cloud_fallback = [
-            "qwen3-coder:480b-cloud",
-            "deepseek-v3.1:671b-cloud",
-            "gpt-oss:120b-cloud",
-            "qwen3-coder:32b-cloud",
-        ]
         return {"models": cloud_fallback, "cloud": cloud_fallback, "local": [], "online": False}
 
 @mdl.delete("/local")
