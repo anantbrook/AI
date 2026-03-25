@@ -150,6 +150,8 @@ git = APIRouter(prefix="/api/git")
 
 @git.get("/status")
 async def git_status(path: str):
+    if not is_safe_path(path):
+        return {"error": "Access denied: Path not in any saved project."}
     return {
         "branch": run_cmd(["git", "branch", "--show-current"], cwd=path),
         "status": run_cmd(["git", "status", "--short"],        cwd=path),
@@ -213,6 +215,8 @@ scan = APIRouter(prefix="/api/scan")
 @scan.get("")
 async def scan_project(path: str):
     try:
+        if not is_safe_path(path):
+            return {"error": "Access denied: Path not in any saved project."}
         p     = Path(path)
         files = []
         for f in p.rglob("*"):
@@ -740,6 +744,10 @@ async def agent_ws(ws: WebSocket):
             # ── Main agent run ─────────────────
             stop_flag.clear()
             project_path = msg["path"]
+            if not is_safe_path(project_path):
+                await send("agent_event", event="error", text="Access denied: Path not in any saved project.")
+                continue
+
             model        = msg.get("model", DEFAULT_MODEL).replace("ollama/", "")
             message      = msg["message"]
 
@@ -919,6 +927,11 @@ async def terminal_ws(ws: WebSocket):
     try:
         init  = json.loads(await ws.receive_text())
         cwd   = init.get("cwd", str(Path.home()))
+        if not is_safe_path(cwd):
+            await ws.send_text(json.dumps({"type": "error", "text": "Access denied: Path not in any saved project."}))
+            await ws.close(code=1008)
+            return
+
         shell = "powershell.exe" if sys.platform == "win32" else "bash"
 
         proc = await asyncio.create_subprocess_exec(
