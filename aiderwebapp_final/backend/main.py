@@ -34,6 +34,13 @@ DEFAULT_MODEL  = "ollama/qwen3-coder:480b-cloud"
 # Shared skip set — used everywhere, defined once
 SKIP = {'node_modules', '__pycache__', '.git', '.next', 'dist', 'build', '.venv', 'venv', '.cache'}
 
+async def fetch_ollama_tags():
+    """Shared helper to fetch tags from local Ollama API in a thread-safe way."""
+    def _fetch():
+        with urllib.request.urlopen("http://localhost:11434/api/tags", timeout=3) as r:
+            return json.loads(r.read())
+    return await asyncio.to_thread(_fetch)
+
 def is_safe_path(target_path: str) -> bool:
     """Check if target_path is a subdirectory of any saved project."""
     try:
@@ -150,10 +157,15 @@ git = APIRouter(prefix="/api/git")
 
 @git.get("/status")
 async def git_status(path: str):
+    branch, status, log = await asyncio.gather(
+        asyncio.to_thread(run_cmd, ["git", "branch", "--show-current"], cwd=path),
+        asyncio.to_thread(run_cmd, ["git", "status", "--short"],        cwd=path),
+        asyncio.to_thread(run_cmd, ["git", "log", "--oneline", "-8"],   cwd=path),
+    )
     return {
-        "branch": run_cmd(["git", "branch", "--show-current"], cwd=path),
-        "status": run_cmd(["git", "status", "--short"],        cwd=path),
-        "log":    run_cmd(["git", "log", "--oneline", "-8"],   cwd=path),
+        "branch": branch,
+        "status": status,
+        "log":    log,
     }
 
 
@@ -172,18 +184,17 @@ async def get_models():
         "qlm-4.6:cloud"
     ]
     try:
-        with urllib.request.urlopen("http://localhost:11434/api/tags", timeout=3) as r:
-            data   = json.loads(r.read())
-            all_m  = [m["name"] for m in data.get("models", [])]
-            cloud  = [m for m in all_m if "cloud" in m]
-            local  = [m for m in all_m if "cloud" not in m]
+        data   = await fetch_ollama_tags()
+        all_m  = [m["name"] for m in data.get("models", [])]
+        cloud  = [m for m in all_m if "cloud" in m]
+        local  = [m for m in all_m if "cloud" not in m]
 
-            # Ensure hardcoded cloud models are always available
-            for m in cloud_fallback:
-                if m not in cloud:
-                    cloud.append(m)
+        # Ensure hardcoded cloud models are always available
+        for m in cloud_fallback:
+            if m not in cloud:
+                cloud.append(m)
 
-            return {"models": cloud + local, "cloud": cloud, "local": local, "online": True}
+        return {"models": cloud + local, "cloud": cloud, "local": local, "online": True}
     except:
         # Ollama offline — return known cloud model names so UI still works
         return {"models": cloud_fallback, "cloud": cloud_fallback, "local": [], "online": False}
@@ -193,13 +204,12 @@ async def delete_local_models():
     """Delete all local (non-cloud) models to free disk space."""
     deleted, failed = [], []
     try:
-        with urllib.request.urlopen("http://localhost:11434/api/tags", timeout=3) as r:
-            data        = json.loads(r.read())
-            local_names = [m["name"] for m in data.get("models", []) if "cloud" not in m["name"]]
+        data        = await fetch_ollama_tags()
+        local_names = [m["name"] for m in data.get("models", []) if "cloud" not in m["name"]]
 
         for name in local_names:
-            result = subprocess.run(["ollama", "rm", name],
-                                    capture_output=True, text=True, timeout=30)
+            result = await asyncio.to_thread(subprocess.run, ["ollama", "rm", name],
+                                             capture_output=True, text=True, timeout=30)
             (deleted if result.returncode == 0 else failed).append(name)
 
         return {"ok": len(failed) == 0, "deleted": deleted, "failed": failed}
