@@ -19,7 +19,9 @@ export default function ProjectPicker({ onSelect, onClose }) {
     try {
       const saved = JSON.parse(localStorage.getItem('recent_paths') || '[]')
       setRecent(saved)
-    } catch {}
+    } catch (err) {
+      console.error('Error loading recent paths from localStorage:', err)
+    }
   }, [])
 
   const pick = async (name, path) => {
@@ -33,7 +35,8 @@ export default function ProjectPicker({ onSelect, onClose }) {
         setChecking(null)
         return
       }
-    } catch {
+    } catch (err) {
+      console.error('Error verifying project path:', err)
       setChecking(null)
       return
     }
@@ -43,7 +46,9 @@ export default function ProjectPicker({ onSelect, onClose }) {
       const saved = JSON.parse(localStorage.getItem('recent_paths') || '[]')
       const next = [{ name, path }, ...saved.filter(p => p.path !== path)].slice(0, 5)
       localStorage.setItem('recent_paths', JSON.stringify(next))
-    } catch {}
+    } catch (err) {
+      console.error('Error saving recent path to localStorage:', err)
+    }
 
     setChecking(null)
     onSelect({ name, path })

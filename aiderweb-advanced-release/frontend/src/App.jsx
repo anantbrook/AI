@@ -29,7 +29,7 @@ export default function App() {
   useEffect(() => {
     fetch('/api/projects').then(r => r.json()).then(d => {
       if (Array.isArray(d) && d.length > 0) setProjects(d)
-    }).catch(() => {})
+    }).catch(err => console.error('Error loading projects:', err))
   }, [])
 
   // Poll Ollama status + model list every 10s
@@ -57,15 +57,15 @@ export default function App() {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(projects),
-      }).catch(() => {})
+      }).catch(err => console.error('Error persisting projects:', err))
     }
   }, [projects])
 
   // Load git + stats whenever the active project changes
   useEffect(() => {
     if (!project) { setGitData(null); setProjectStats(null); return }
-    fetch(`/api/git/status?path=${encodeURIComponent(project.path)}`).then(r => r.json()).then(setGitData).catch(() => {})
-    fetch(`/api/scan?path=${encodeURIComponent(project.path)}`).then(r => r.json()).then(setProjectStats).catch(() => {})
+    fetch(`/api/git/status?path=${encodeURIComponent(project.path)}`).then(r => r.json()).then(setGitData).catch(err => console.error('Error fetching git status:', err))
+    fetch(`/api/scan?path=${encodeURIComponent(project.path)}`).then(r => r.json()).then(setProjectStats).catch(err => console.error('Error scanning project:', err))
   }, [project?.path])
 
   // Sidebar resize listeners

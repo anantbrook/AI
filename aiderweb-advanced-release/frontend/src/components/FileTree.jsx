@@ -28,7 +28,7 @@ function Node({ item, depth }) {
     if (item.isDir && depth < 1 && !loaded) {
       fetch(`/api/fs/list?path=${encodeURIComponent(item.path)}`)
         .then(r => r.json()).then(d => { setChildren(d.items || []); setLoaded(true) })
-        .catch(() => {})
+        .catch(err => console.error('Error fetching child items:', err))
     }
   }, [])
 
@@ -60,7 +60,7 @@ export default function FileTree({ root }) {
     setLoading(true)
     fetch(`/api/fs/list?path=${encodeURIComponent(root)}`)
       .then(r => r.json()).then(d => setItems(d.items || []))
-      .catch(() => {}).finally(() => setLoading(false))
+      .catch(err => console.error('Error loading file tree:', err)).finally(() => setLoading(false))
   }
 
   useEffect(() => { load() }, [root])
