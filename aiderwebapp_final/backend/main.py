@@ -678,35 +678,6 @@ def read_project_files(project_path: str) -> tuple[str, list[str]]:
 
     return "\n".join(files_content), file_list
 
-def apply_edits(project_path: str, ai_response: str) -> list[str]:
-    """Parse <<<EDIT ... >>>END blocks from AI response and write to disk."""
-    import re
-    edited = []
-    pattern = re.compile(r'<<<EDIT:\s*([^\n]+)\n(.*?)>>>END', re.DOTALL)
-
-    for match in pattern.finditer(ai_response):
-        rel_path = match.group(1).strip()
-        content  = match.group(2)
-        # Remove leading newline if present
-        if content.startswith('\n'):
-            content = content[1:]
-
-        abs_path = Path(project_path) / rel_path
-        try:
-            abs_path.parent.mkdir(parents=True, exist_ok=True)
-            abs_path.write_text(content, encoding="utf-8")
-            edited.append(rel_path)
-        except Exception as e:
-            pass  # logged via agent_event
-
-    return edited
-
-def strip_edits(response: str) -> str:
-    """Remove <<<EDIT blocks from response for clean display."""
-    import re
-    clean = re.sub(r'<<<EDIT:[^\n]+\n.*?>>>END\n?', '', response, flags=re.DOTALL)
-    return clean.strip()
-
 
 # ── Agent WebSocket ────────────────────────────
 @app.websocket("/ws/agent")
