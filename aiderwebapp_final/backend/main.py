@@ -26,7 +26,12 @@ origins = [
     "http://127.0.0.1:5173",
     "http://127.0.0.1:8000",
 ]
-app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["Content-Type", "Accept"],
+)
 
 PROJECTS_FILE = Path.home() / ".aiderwebapp" / "projects.json"
 DEFAULT_MODEL  = "ollama/qwen3-coder:480b-cloud"
