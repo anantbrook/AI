@@ -70,6 +70,24 @@ def run_cmd(cmd, cwd=None, timeout=10):
     except:
         return ""
 
+async def run_cmd_async(cmd, cwd=None, timeout=10):
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            cwd=cwd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        try:
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+            return stdout.decode(errors="replace").strip()
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+            return ""
+    except Exception:
+        return ""
+
 
 # ── File System ────────────────────────────────
 fs = APIRouter(prefix="/api/fs")
@@ -150,10 +168,15 @@ git = APIRouter(prefix="/api/git")
 
 @git.get("/status")
 async def git_status(path: str):
+    branch, status, log = await asyncio.gather(
+        run_cmd_async(["git", "branch", "--show-current"], cwd=path),
+        run_cmd_async(["git", "status", "--short"],        cwd=path),
+        run_cmd_async(["git", "log", "--oneline", "-8"],   cwd=path),
+    )
     return {
-        "branch": run_cmd(["git", "branch", "--show-current"], cwd=path),
-        "status": run_cmd(["git", "status", "--short"],        cwd=path),
-        "log":    run_cmd(["git", "log", "--oneline", "-8"],   cwd=path),
+        "branch": branch,
+        "status": status,
+        "log":    log,
     }
 
 
